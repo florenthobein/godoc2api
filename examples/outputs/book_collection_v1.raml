@@ -1,0 +1,107 @@
+#%RAML 1.0
+---
+title: Book collection
+version: v1
+baseUri: http://localhost:8080
+mediaType: application/json
+types:
+  Book:
+    type: object
+    properties:
+      author: string
+      description?: string
+      id: uuid
+      name: string
+      price: number
+      stars: integer
+  uuid:
+    type: string
+    pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+/books:
+  post:
+    description: Create a new book
+    responses:
+      200:
+        body:
+          application/json:
+            type: Book
+            examples:
+              Example1:
+                description: Create a classic
+                value: |-
+                  {
+                    "id": "ca761232-ed42-11ce-bacd-00aa0057b223",
+                    "name": "Cyrano de bergerac",
+                    "author": "Edmond Rostand",
+                    "price": 10.3,
+                    "stars": 2
+                  }
+                strict: false
+            description: The created book
+    body:
+      application/json:
+        type: Book
+        examples:
+          Example1:
+            description: Create a classic
+            value: |-
+              {
+                "id": "ca761232-ed42-11ce-bacd-00aa0057b223",
+                "name": "Cyrano de bergerac",
+                "author": "Edmond Rostand",
+                "price": 10.3,
+                "stars": 2
+              }
+            strict: false
+        description: The
+  /{id}:
+    uriParameters:
+      id:
+        type: uuid
+        description: The identifier of the book
+    get:
+      description: Get a book
+      queryParameters:
+        with_metadata:
+          type: boolean
+          description: If set to `true`, includes metadatas in the response
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+              description: The book that you wanted
+    post:
+      description: Update a book
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+              description: The book updated
+      body:
+        application/json:
+          type: Book
+    delete:
+      description: Delete a book
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+              description: The book updated
+      body:
+        application/json:
+          type: Book
+  /new:
+    post:
+      description: Create a new book the old way
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+              description: The created book
+      body:
+        application/json:
+          type: Book

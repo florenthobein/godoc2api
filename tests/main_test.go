@@ -59,7 +59,7 @@ func TestWithRouteDefinition(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	err = doc.Render(output_dir)
+	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -82,7 +82,7 @@ func TestWithHandler(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	err = doc.Render(output_dir)
+	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -109,7 +109,7 @@ func TestBalanced(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	err = doc.Render(output_dir)
+	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

@@ -1,3 +1,5 @@
+// Godoc2API
+
 // todo
 // Fix: piling of raml.Root
 // Fix: combinable enums is not RAML 1.0 compliant
@@ -10,6 +12,7 @@ package godoc2api
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -131,18 +134,8 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 	return nil
 }
 
-// Render the documentation into a RAML file in the designated directory.
-func (d *Documentation) Render(dirname string) error {
-
-	sep := string(filepath.Separator)
-
-	if dirname == "" {
-		warn("no output directory specified, rendering to default %s", _DEFAULT_OUTPUT_DIR)
-		dirname = _DEFAULT_OUTPUT_DIR
-	} else {
-		dirname = strings.Trim(dirname, " "+sep)
-	}
-
+// Generate the documentation
+func (d *Documentation) toString() (string, error) {
 	// Fill the empty fields
 	if d.Title == "" {
 		d.Title = _DEFAULT_TITLE
@@ -161,11 +154,41 @@ func (d *Documentation) Render(dirname string) error {
 	api, err := d.toRAML()
 	if err != nil {
 		problem(err.Error())
-		return err
+		return "", err
 	}
 
 	// Transform the RAML into a string
 	s := api.String()
+
+	return s, nil
+}
+
+// Print the documentation
+func (d *Documentation) Print() error {
+	s, err := d.toString()
+	if err != nil {
+		return err
+	}
+	log.Println(s)
+	return nil
+}
+
+// Render the documentation into a RAML file in the designated directory.
+func (d *Documentation) Save(dirname string) error {
+
+	sep := string(filepath.Separator)
+
+	if dirname == "" {
+		warn("no output directory specified, rendering to default %s", _DEFAULT_OUTPUT_DIR)
+		dirname = _DEFAULT_OUTPUT_DIR
+	} else {
+		dirname = strings.Trim(dirname, " "+sep)
+	}
+
+	s, err := d.toString()
+	if err != nil {
+		return err
+	}
 
 	// Get the filename
 	filename := fmt.Sprintf(

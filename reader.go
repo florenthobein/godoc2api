@@ -12,7 +12,10 @@ import (
 )
 
 // Reflect signature of a callback
-const _CALLBACK_SIGNATURE = "func(http.ResponseWriter, *http.Request)"
+const (
+	_CALLBACK_SIGNATURE = "func(http.ResponseWriter, *http.Request)"
+	_HANDLER_SIGNATURE  = "http.HandlerFunc"
+)
 
 // Store all the comment strings describing a callback
 // identified by by its file path and line number
@@ -26,7 +29,7 @@ func readComment(user_route interface{}) (c string, extra map[string]interface{}
 	extra = map[string]interface{}{}
 
 	v := reflect.ValueOf(user_route)
-	if v.Type().String() == _CALLBACK_SIGNATURE {
+	if v.Type().String() == _CALLBACK_SIGNATURE || v.Type().String() == _HANDLER_SIGNATURE {
 		// If the input is a callback
 		// go directly to fetching the comment
 		callback = v.Pointer()
@@ -41,7 +44,7 @@ func readComment(user_route interface{}) (c string, extra map[string]interface{}
 			if tag == "" {
 				continue
 			}
-			if tag == TAG_HANDLER && f.Type().String() == _CALLBACK_SIGNATURE {
+			if tag == TAG_HANDLER && (f.Type().String() == _CALLBACK_SIGNATURE || f.Type().String() == _HANDLER_SIGNATURE) {
 				callback = f.Pointer()
 			} else if tf.Type.Kind() == reflect.String {
 				extra[tag] = f.String()

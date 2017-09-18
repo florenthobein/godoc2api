@@ -319,6 +319,12 @@ func (t *Type) fillToRAML(types *map[string]raml.Type) error {
 		name = formatMapName(res[1], res[2])
 	}
 
+	// Check name of module
+	// TODO tricky
+	// if res := strings.Split(name, "."); len(res) > 1 {
+	// 	name = res[1]
+	// }
+
 	// Check the type definition
 	td, ok := index_types[name]
 	if !ok {
@@ -445,6 +451,7 @@ func (td *TypeDefinition) toRAML() (raml.Type, []string) {
 	// Read the struct
 	properties := map[string]interface{}{}
 	alt_tag_name := "json"
+	main_tag_type_name := "ramlType"
 	s := structs.New(instance)
 	fs := s.Fields()
 	for _, f := range fs {
@@ -459,11 +466,13 @@ func (td *TypeDefinition) toRAML() (raml.Type, []string) {
 		if len(v) < 1 || v[0] == "" {
 			continue
 		}
-
 		name := v[0]
 
 		// Check the kind
 		type_name := strings.Replace(reflect.TypeOf(f.Value()).String(), " ", "", -1)
+		if value := f.Tag(main_tag_type_name); value != "" {
+			type_name = value
+		}
 		_, precise, _, err := formatType(type_name)
 		if err != nil {
 			warn(err.Error())
