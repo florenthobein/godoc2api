@@ -1,24 +1,18 @@
 // Test the library
-package main
+package godoc2api_test
 
 import (
 	"encoding/json"
-	"flag"
 	"net/http"
+	"os"
+	"testing"
 	"time"
 
 	"github.com/florenthobein/godoc2api"
 )
 
-func main() {
-
-	logLevel := flag.Uint("log", 3, "Define a log level") // default: nothing
-	flag.Parse()
-	if logLevel != nil && *logLevel < 3 {
-		godoc2api.LogLevel = *logLevel
-	}
-
-	output_dir := "output"
+func init() {
+	godoc2api.LogLevel = godoc2api.LOG_DEBUG
 
 	// Configuration
 	godoc2api.DefineSecurity("auth", nil)    // todo
@@ -26,7 +20,17 @@ func main() {
 	godoc2api.DefineType("MyStruct", MyStruct{})
 	godoc2api.DefineType("MyStruct2", MyStruct2{})
 
-	// Create the doc
+	return
+}
+
+func teardown(folder string) {
+	os.RemoveAll(folder)
+}
+
+func TestWithRouteDefinition(t *testing.T) {
+	output_dir := "test1"
+	defer teardown(output_dir)
+
 	doc := godoc2api.Documentation{
 		Title:       "Test API",
 		Description: "API used for tests",
@@ -35,7 +39,7 @@ func main() {
 	}
 
 	// Add the a full route definition, the handler is not commented
-	doc.AddRoute(RouteDefinition{
+	err := doc.AddRoute(RouteDefinition{
 		Method:      "POST",
 		Resource:    "/myroute/{id}",
 		Description: "A route that use a handler without comments",
@@ -51,19 +55,64 @@ func main() {
 		},
 		Response: "{MyStruct}",
 	})
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 
-	// Add a route with just the handler
-	doc.AddRoute(MyHanderWithAllTheComments)
+	err = doc.Render(output_dir)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
 
-	// Add a route definition completed with comments
-	doc.AddRoute(RouteDefinition{
+func TestWithHandler(t *testing.T) {
+	output_dir := "test2"
+	defer teardown(output_dir)
+
+	doc := godoc2api.Documentation{
+		Title:       "Test API",
+		Description: "API used for tests",
+		Version:     "v1",
+		URL:         "http://mywebsite/{version}",
+	}
+
+	// Add the a full route definition, the handler is not commented
+	err := doc.AddRoute(MyHanderWithAllTheComments)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	err = doc.Render(output_dir)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
+func TestBalanced(t *testing.T) {
+	output_dir := "test3"
+	defer teardown(output_dir)
+
+	doc := godoc2api.Documentation{
+		Title:       "Test API",
+		Description: "API used for tests",
+		Version:     "v1",
+		URL:         "http://mywebsite/{version}",
+	}
+
+	// Add the a full route definition, the handler is not commented
+	err := doc.AddRoute(RouteDefinition{
 		Resource: "GET /myroute/{id}",
 		Handler:  MyHanderWithFewComments,
 		Auth:     true,
 	})
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 
-	// Render the RAML document
-	doc.Render(output_dir)
+	err = doc.Render(output_dir)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 }
 
 type RouteDefinition struct {
