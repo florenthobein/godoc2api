@@ -92,7 +92,7 @@ type Root struct {
 	// clarify how the API works or provide business context.
 	// All the sections are in the order in which the documentation is declared.
 	// TODO
-	//////// Documentation []Documentation `yaml:"documentation,omitempty"`
+	//////// Documentation []interface{} `yaml:"documentation,omitempty"`
 
 	// An alias for the equivalent "types" property for compatibility with RAML 0.8.
 	// Deprecated - API definitions should use the "types" property
@@ -109,7 +109,7 @@ type Root struct {
 
 	// Declarations of resource types for use within the API.
 	// TODO
-	//////// ResourceTypes map[string]ResourceType `yaml:"resourceTypes,omitempty"`
+	//////// ResourceTypes map[string]interface{} `yaml:"resourceTypes,omitempty"`
 
 	// Declarations of annotation types for use by annotations.
 	// The value of the annotationsType node is a map whose keys define annotation type names,
@@ -128,7 +128,7 @@ type Root struct {
 
 	// The security schemes that apply to every resource and method in the API.
 	// TODO
-	//////// SecuredBy []DefinitionChoice `yaml:"securedBy,omitempty"`
+	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
 
 	// Imported external libraries for use within the API.
 	// TODO
@@ -142,7 +142,7 @@ type Root struct {
 
 // Check the coherence of the structure
 // according to the RAML 1.0 specs
-func (root//Root) Check() (bool, []error) {
+func (root *Root) Check() (bool, []error) {
 
 	// Check annotations
 	if len(root.AnnotationTypes) != 0 {
@@ -185,7 +185,7 @@ func (s ByURI) Less(i, j int) bool {
 }
 
 // Transform a flat list of resources into a tree-shaped list
-func (root//Root) PileResources() {
+func (root *Root) PileResources() {
 
 	if len(root.Resources) == 0 {
 		return
@@ -206,7 +206,7 @@ func (root//Root) PileResources() {
 	}
 
 	// Filter the URI parameters of a RAML resource with a string URI
-	var filterURIParameters = func(r//Resource, filter string) {
+	var filterURIParameters = func(r *Resource, filter string) {
 		ps := regexp.MustCompile(`\{(.+)\}`).FindStringSubmatch(filter)
 		if len(ps) <= 1 {
 			(*r).URIParameters = nil
@@ -256,7 +256,7 @@ func (root//Root) PileResources() {
 	root_resources := make(map[string]Resource)
 	for k, r := range index {
 		if r.Parent == nil {
-			root_resources[k] =//r
+			root_resources[k] = *r
 		}
 	}
 	root.Resources = root_resources
@@ -265,7 +265,7 @@ func (root//Root) PileResources() {
 }
 
 // Return a string description of the document
-func (root//Root) String() string {
+func (root *Root) String() string {
 
 	// Marshal the RAML document
 	b, err := yaml.Marshal(root)

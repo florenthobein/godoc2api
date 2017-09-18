@@ -1,7 +1,8 @@
-package doc2raml
+package godoc2api
 
-import "github.com/cometapp/midgar/doc2raml/raml"
+import "github.com/florenthobein/godoc2api/raml"
 
+// Security schemes
 const (
 	SECURITY_OAUTH_1 = iota
 	SECURITY_OAUTH_2
@@ -11,11 +12,15 @@ const (
 	SECURITY_X_CUSTOM
 )
 
+// Security scheme, mirror of the RAML equivalent
 type Security struct{}
 
-func DefineSecurity(name string, t uint) {
+// Configure a new security scheme.
+// All the routes that declare the tag `tag_name` will be considered
+// secured by this scheme.
+func DefineSecurity(tag_name string, t interface{}) {
 	// Store the keyword
-	reserveKeyword(name, KEYWORD_TYPE_SECURITY)
+	reserveTag(tag_name, _TAG_TYPE_SECURITY)
 }
 
 func (s *Security) fillToRAML(index *map[string]raml.SecurityScheme) error {

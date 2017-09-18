@@ -131,25 +131,25 @@ type ArrayType struct {
 type StringType struct {
 
 	// Regular expression that this string SHOULD match.
-	Pattern //string `yaml:"pattern,omitempty"`
+	Pattern *string `yaml:"pattern,omitempty"`
 
 	// Minimum length of the string. Value MUST be equal to or greater than 0.
 	// ALSO used by File
-	MinLength //int `yaml:"minLength,omitempty"`
+	MinLength *int `yaml:"minLength,omitempty"`
 
 	// Maximum length of the string. Value MUST be equal to or greater than 0.
 	// ALSO used by File
-	MaxLength //int `yaml:"maxLength,omitempty"`
+	MaxLength *int `yaml:"maxLength,omitempty"`
 }
 
 // Number or Interger
 type NumberType struct {
 
 	// The minimum value of the parameter.
-	Minimum //float64 `yaml:"minimum,omitempty"`
+	Minimum *float64 `yaml:"minimum,omitempty"`
 
 	// The maximum value of the parameter.
-	Maximum //float64 `yaml:"maximum,omitempty"`
+	Maximum *float64 `yaml:"maximum,omitempty"`
 
 	// The format of the value. The value MUST be one of the following:
 	// int32, int64, int, long, float, double, int16, int8
@@ -158,7 +158,7 @@ type NumberType struct {
 
 	// A numeric instance is valid against "multipleOf" if the result
 	// of dividing the instance by this keyword's value is an integer.
-	MultipleOf //int64 `yaml:"multipleOf,omitempty"`
+	MultipleOf *int64 `yaml:"multipleOf,omitempty"`
 }
 
 type DateType struct {
@@ -185,7 +185,7 @@ type DateType struct {
 
 type FileType struct {
 	// A list of valid content-type strings for the file.
-	// The file type///* MUST be a valid value.
+	// The file type MUST be a valid value.
 	FileTypes []string `yaml:"fileTypes,omitempty"`
 }
 

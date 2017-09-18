@@ -1,9 +1,9 @@
-package doc2raml
+package godoc2api
 
 import (
 	"fmt"
 
-	"github.com/cometapp/midgar/doc2raml/raml"
+	"github.com/florenthobein/godoc2api/raml"
 )
 
 type Example struct {
@@ -22,6 +22,9 @@ func (e *Example) toRAMLQuery() (ex *raml.Example, err error) {
 		Description: e.Description,
 		Value:       e.Body,
 		Strict:      false,
+	}
+	if e.URI != "" {
+		ex.Description = fmt.Sprintf("%s\n`%s`", ex.Description, e.URI)
 	}
 	return
 }

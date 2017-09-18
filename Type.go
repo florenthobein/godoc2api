@@ -1,4 +1,4 @@
-package doc2raml
+package godoc2api
 
 import (
 	"fmt"
@@ -6,21 +6,24 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cometapp/gaia/logging"
-	"github.com/cometapp/midgar/doc2raml/raml"
 	"github.com/fatih/structs"
+
+	"github.com/florenthobein/godoc2api/raml"
 )
 
-const RESERVED_TYPES = `(string|number|int|date|bool|file)`
-
+// Registry of type definitions
 var index_types map[string]TypeDefinition
 
-// var unknown_object_count uint = 1
+// Regex to match maps
+const _PARSE_MAP = `^map\[([^\]]+)\](.+)$`
 
-var regex_map = regexp.MustCompile(`^map\[([^\]]+)\](.+)$`)
-
+// A Type is a global definition of a parameter's type.
+// Every type that is not a scalar should generate
+// a type definition.
 type Type string
 
+// A TypeDefinition defines the structure of a Type and is linked
+// at the of the document
 type TypeDefinition struct {
 	name         string
 	aliasFor     *TypeDefinition
@@ -31,6 +34,95 @@ type TypeDefinition struct {
 	mapValue     string
 }
 
+// Configure a new type definition.
+//
+// The objects used as inputs and outputs of the API
+// have to match a defined type.
+// This is mandatory, as go doesn't have a global type registry that would allow
+// to create a variable out of its kind's name.
+//
+// Example
+//
+// This type definition
+//	DefineType("MyStruct", MyStruct{})
+// should be used to define the response type of
+//	// My route description
+//	// @resource GET /myroute
+//	// @response {MyStruct}
+//	func MyHandler(http.ResponseWriter, *http.Request) { ... }
+func DefineType(name string, obj interface{}) {
+	if index_types == nil {
+		index_types = make(map[string]TypeDefinition)
+	}
+	ref := reflect.TypeOf(obj)
+	true_name := ref.String()
+	td := TypeDefinition{
+		name:        name,
+		reflectType: &ref,
+	}
+	index_types[name] = td
+	index_types[true_name] = TypeDefinition{
+		name:     true_name,
+		aliasFor: &td,
+	}
+}
+
+// Configure a new type definition already formated with standard RAML data types.
+//
+// See https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/#raml-data-types
+// for more informations on RAML types
+func DefineTypeRAML(name, raml_type string, properties map[string]interface{}) {
+	if index_types == nil {
+		index_types = make(map[string]TypeDefinition)
+	}
+	index_types[name] = TypeDefinition{
+		name:         name,
+		nameRAMLType: raml_type,
+		properties:   properties,
+	}
+}
+
+func defineTypeMap(name, key, value string) *TypeDefinition {
+	if index_types == nil {
+		index_types = make(map[string]TypeDefinition)
+	}
+	td := TypeDefinition{
+		name:     name,
+		mapKey:   key,
+		mapValue: value,
+	}
+	index_types[name] = td
+	return &td
+}
+
+func isDefinedTypeRAML(name string) (t TypeDefinition, ok bool) {
+	if index_types == nil {
+		return
+	}
+	t, ok = index_types[name]
+	ok = ok && t.nameRAMLType != ""
+	return
+}
+
+// Configure a new alias for a type definition.
+//
+// Example
+//
+// This type definition
+//	DefineType("MyStruct", MyStruct{})
+//	DefineTypeAlias("super_struct", "MyStruct")
+// can be used to define the response type of
+//	// My route description
+//	// @resource GET /myroute
+//	// @response {super_struct}
+//	func (http.ResponseWriter, *http.Request) { ... }
+//
+// Limitation
+//
+// Why not directy using `DefineType("super_struct", MyStruct{})` then?
+// Because if an other struct contains a field of the type `MyStruct`,
+// the library will not be able to find a reference of the object.
+//	type MyStruct2 []MyStruct // this requires `MyStruct` and `MyStruct2` to be defined
 func DefineTypeAlias(alias, name string) {
 	if index_types == nil {
 		index_types = make(map[string]TypeDefinition)
@@ -55,56 +147,6 @@ func isTypeAlias(alias string) (res string, ok bool) {
 			}
 		}
 	}
-	return
-}
-
-func DefineType(name string, obj interface{}) *TypeDefinition {
-	if index_types == nil {
-		index_types = make(map[string]TypeDefinition)
-	}
-	ref := reflect.TypeOf(obj)
-	true_name := ref.String()
-	td := TypeDefinition{
-		name:        name,
-		reflectType: &ref,
-	}
-	index_types[name] = td
-	index_types[true_name] = TypeDefinition{
-		name:     true_name,
-		aliasFor: &td,
-	}
-	return &td
-}
-func DefineTypeMap(name, key, value string) *TypeDefinition {
-	if index_types == nil {
-		index_types = make(map[string]TypeDefinition)
-	}
-	td := TypeDefinition{
-		name:     name,
-		mapKey:   key,
-		mapValue: value,
-	}
-	index_types[name] = td
-	return &td
-}
-
-func DefineTypeRAML(name, raml_type string, properties map[string]interface{}) {
-	if index_types == nil {
-		index_types = make(map[string]TypeDefinition)
-	}
-	index_types[name] = TypeDefinition{
-		name:         name,
-		nameRAMLType: raml_type,
-		properties:   properties,
-	}
-}
-
-func isDefinedTypeRAML(name string) (t TypeDefinition, ok bool) {
-	if index_types == nil {
-		return
-	}
-	t, ok = index_types[name]
-	ok = ok && t.nameRAMLType != ""
 	return
 }
 
@@ -196,7 +238,7 @@ func formatType(name string) (global string, precise Type, register_types []Type
 	}
 
 	// If it's a map
-	if res := regex_map.FindStringSubmatch(name); len(res) > 2 {
+	if res := regexp.MustCompile(_PARSE_MAP).FindStringSubmatch(name); len(res) > 2 {
 		register_types = []Type{Type(name)}
 		_, k, other_ts, _ := formatType(res[1])
 		for _, other_t := range other_ts {
@@ -207,7 +249,7 @@ func formatType(name string) (global string, precise Type, register_types []Type
 			register_types = append(register_types, other_t)
 		}
 		name = formatMapName(res[1], res[2])
-		DefineTypeMap(name, string(k), string(v))
+		defineTypeMap(name, string(k), string(v))
 		debug("creation of type map %s", name)
 		return "object", Type(name), register_types, nil
 	}
@@ -273,7 +315,7 @@ func (t *Type) fillToRAML(types *map[string]raml.Type) error {
 	}
 
 	// Check map
-	if res := regex_map.FindStringSubmatch(name); len(res) > 2 {
+	if res := regexp.MustCompile(_PARSE_MAP).FindStringSubmatch(name); len(res) > 2 {
 		name = formatMapName(res[1], res[2])
 	}
 
@@ -387,7 +429,7 @@ func (td *TypeDefinition) toRAML() (raml.Type, []string) {
 		} else if v.Kind().String() == "slice" {
 			name = "[]" + strings.Replace(typeof.Elem().String(), " ", "", -1)
 		} else {
-			logging.Debugf("[%s] %s (%s)", v.Kind().String(), (*td.reflectType).String(), reflect.TypeOf(instance).Elem().String())
+			warn("[%s] %s (%s)", v.Kind().String(), (*td.reflectType).String(), reflect.TypeOf(instance).Elem().String())
 			return raml.Type{}, others
 		}
 
@@ -406,7 +448,7 @@ func (td *TypeDefinition) toRAML() (raml.Type, []string) {
 	s := structs.New(instance)
 	fs := s.Fields()
 	for _, f := range fs {
-		value := f.Tag(TAG_NAME)
+		value := f.Tag(_MAIN_TAG_NAME)
 		if value == "" {
 			value = f.Tag(alt_tag_name)
 		}

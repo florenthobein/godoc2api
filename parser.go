@@ -1,7 +1,7 @@
 // The parser is responsible for analysing a comment and extracting meaningful keywords
 // It also structures the keyword fields
 
-package doc2raml
+package godoc2api
 
 import (
 	"fmt"
@@ -10,41 +10,51 @@ import (
 	"strings"
 )
 
-const ALLOWED_METHODS = `(GET|HEAD|POST|PUT|DELETE|PATCH|OPTIONS)`
+// Regular expressions used for parsing the comments
+const (
+	_PARSE_METHODS         = `(GET|HEAD|POST|PUT|DELETE|PATCH|OPTIONS)`
+	_PARSE_RESOURCE        = `^(?:` + _PARSE_METHODS + ` )?(/.+)$`
+	_PARSE_TAG             = `^(?://| ?\*) @(\w+)(?:[ 	]+(.+))?$`
+	_PARSE_TAGBLOCK        = `^(?://| ?\*)(?:[ 	]+(.+))?$`
+	_PARSE_LINE            = `^\{\(?([^\)]+)\)?\}(?:[ 	]+\[?([\w\=]+)?\]?(?:[ 	\-]+(?:\-[ 	]+)?(.+))?)?$`
+	_PARSE_TYPE            = `^([\w \|\[\]\{\}]+)(?:\:([\w\|\,]+))?$`
+	_PARSE_TYPE_ENUM       = ` *\| *`
+	_PARSE_TYPE_COMBINABLE = ` *\, *`
+	_PARSE_NAME            = `^(\w+)(?:\=(\w+))?$`
+)
 
 // Analyse a comment to extract the keywords
 func parseComment(comment string) map[string][][]string {
 
-	// desc_re := regexp.MustCompile("^(?://| ?\\*) +(.+)$")
-	field_re := regexp.MustCompile("^(?://| ?\\*) @(\\w+)(?:\t+(.+))?$")
-	field_block_re := regexp.MustCompile("^(?://| ?\\*)(?:[ \t]+(.*))?$")
-
 	result := make(map[string][][]string)
 
-	current_keyword := KEYWORD_DESCRIPTION
+	tag_re := regexp.MustCompile(_PARSE_TAG)
+	tag_block_re := regexp.MustCompile(_PARSE_TAGBLOCK)
+
+	current_tag := TAG_DESCRIPTION
 	current_fields := []string{}
 
 	// Read the comment line by line
 	lns := strings.Split(comment, "\n")
 	for _, ln := range lns {
-		res := field_re.FindStringSubmatch(strings.Trim(ln, " \t"))
+		res := tag_re.FindStringSubmatch(strings.Trim(ln, " \t"))
 		// if we are reading a new keyword
 		if len(res) > 1 {
 
 			// store the previous one
-			if result[current_keyword] == nil {
-				result[current_keyword] = [][]string{}
+			if result[current_tag] == nil {
+				result[current_tag] = [][]string{}
 			}
-			result[current_keyword] = append(result[current_keyword], current_fields)
+			result[current_tag] = append(result[current_tag], current_fields)
 
 			// start a new one
-			current_keyword = res[1]
+			current_tag = res[1]
 			current_fields = []string{}
 			if len(res) == 3 && res[2] != "" {
 				current_fields = regexp.MustCompile("\t+").Split(res[2], -1)
 			}
 
-		} else if res = field_block_re.FindStringSubmatch(ln); len(res) > 1 {
+		} else if res = tag_block_re.FindStringSubmatch(ln); len(res) > 1 {
 
 			// If no new keyword, but still reading content, store the field
 			current_fields = append(current_fields, res[1])
@@ -53,10 +63,10 @@ func parseComment(comment string) map[string][][]string {
 	}
 
 	// Store the last one
-	if result[current_keyword] == nil {
-		result[current_keyword] = [][]string{}
+	if result[current_tag] == nil {
+		result[current_tag] = [][]string{}
 	}
-	result[current_keyword] = append(result[current_keyword], current_fields)
+	result[current_tag] = append(result[current_tag], current_fields)
 
 	return result
 }
@@ -64,9 +74,9 @@ func parseComment(comment string) map[string][][]string {
 // Parse the method
 func parseMethod(str string) (method string, err error) {
 	if !regexp.
-		MustCompile(ALLOWED_METHODS).
+		MustCompile(_PARSE_METHODS).
 		MatchString(str) {
-		return "", fmt.Errorf("unknown method %s", str)
+		return "", fmt.Errorf("unknown method `%s`", str)
 	}
 	return str, nil
 }
@@ -76,16 +86,15 @@ func parseResource(str string) (resource string, eventual_method string, err err
 	if str == "" {
 		return "", "", fmt.Errorf("empty resource")
 	}
-	if str[0] != '/' {
+	res := regexp.
+		MustCompile(_PARSE_RESOURCE).
+		FindStringSubmatch(str)
+	if len(res) != 3 {
 		return "", "", fmt.Errorf("resources should be relative and start by a /")
 	}
-	r := regexp.
-		MustCompile(fmt.Sprintf(`^%s (.+)$`, ALLOWED_METHODS)).
-		FindStringSubmatch(str)
-	if len(r) == 3 {
-		return r[2], r[1], nil
-	}
-	return str, "", nil
+	resource = res[2]
+	eventual_method = res[1]
+	return
 }
 
 // Parse the description
@@ -125,43 +134,60 @@ func parseParameter(arr []string, is_body bool) (p Parameter, register_types []T
 		return p, nil, fmt.Errorf("missing definition")
 	}
 
-	p = Parameter{Name: arr[0]}
-
-	if is_body {
-		if len(arr) == 1 {
-			p.Type = Type(arr[0])
-		} else if len(arr) == 2 {
-			p.Type = Type(arr[0])
-			p.Description = arr[1]
-		} else if len(arr) == 3 {
-			p.Type = Type(arr[1])
-			p.Description = arr[2]
-		}
-	} else {
-		if len(arr) == 1 {
-			err = fmt.Errorf("missing definition for %s", p.Name)
-		} else if len(arr) == 2 {
-			err = fmt.Errorf("missing type definition for %s", p.Name)
-			p.Description = arr[1]
-		} else if len(arr) == 3 {
-			p.Type = Type(arr[1])
-			p.Description = arr[2]
-		} else {
-			err = fmt.Errorf("wrong definition for %s", p.Name)
-		}
+	// Parse line
+	line := strings.Join(arr, " ")
+	arr = regexp.MustCompile(_PARSE_LINE).FindStringSubmatch(line)
+	if len(arr) == 0 || arr[0] == "" {
+		debug("can't parse line: %s sur %s", _PARSE_LINE, line)
+		return p, nil, fmt.Errorf("wrong parameter definition")
 	}
 
-	// Check possible values
-	// i.e. string(a,b,c) or int(0|1|2)
-	re := regexp.MustCompile(`^(.+)\((.+)\)$`)
+	// Define attributes
+	type_name, name, description := "", "", ""
+	if is_body {
+		type_name, description = arr[1], arr[2]
+	} else {
+		type_name, name, description = arr[1], arr[2], arr[3]
+	}
+
+	// Parse type
+	res := regexp.MustCompile(_PARSE_TYPE).FindStringSubmatch(type_name)
+	if len(res) == 0 {
+		debug("can't parse type: %s sur %s", _PARSE_TYPE, type_name)
+		return p, nil, fmt.Errorf("wrong type definition")
+	}
+	type_name = res[1]
+	type_enum := res[2]
+
+	// Parse name
+	type_default := ""
+	if name != "" {
+		res = regexp.MustCompile(_PARSE_NAME).FindStringSubmatch(name)
+		if len(res) == 0 {
+			return p, nil, fmt.Errorf("wrong name definition")
+		}
+		name = res[1]
+		type_default = res[2]
+	} else {
+		name = type_name
+	}
+
+	// Create the object
+	p = Parameter{
+		Name:        name,
+		Type:        Type(type_name),
+		Description: description,
+	}
+
+	// Check possible values for type
+	// i.e. string:a,b,c or int:0|1|2
 	enum := []string{}
 	examples := []string{}
-	if m := re.FindStringSubmatch(string(p.Type)); len(m) > 1 {
-		p.Type = Type(m[1])
+	if type_enum != "" {
 		// If enum values are not combinable
-		if values := regexp.MustCompile(`\|`).Split(m[2], -1); len(values) > 1 {
+		if values := regexp.MustCompile(_PARSE_TYPE_ENUM).Split(type_enum, -1); len(values) > 1 {
 			enum = values
-		} else if values := regexp.MustCompile(`,`).Split(m[2], -1); len(values) > 1 {
+		} else if values := regexp.MustCompile(_PARSE_TYPE_COMBINABLE).Split(type_enum, -1); len(values) > 1 {
 			// If enum values are combinable
 			// we display examples
 			enum = values
@@ -200,22 +226,46 @@ func parseParameter(arr []string, is_body bool) (p Parameter, register_types []T
 		p.Example = strings.Join(examples, ", ") //parseList(examples, string(p.Type))
 	}
 
+	// If default, parse to the good type
+	if type_default != "" {
+		val := parseList([]string{type_default}, string(p.Type))
+		if len(val) > 0 {
+			p.Default = val[0]
+		}
+	}
+
 	return
 }
 
 // Parse a response
-func parseResponse(att []string) (r Response, register_types []Type, err error) {
-	if len(att) == 0 {
+func parseResponse(arr []string) (r Response, register_types []Type, err error) {
+	if len(arr) == 0 {
 		return Response{}, nil, fmt.Errorf("missing definition for the response")
 	}
 
-	r = Response{Type: Type(att[0])}
+	// Parse line
+	line := strings.Join(arr, " ")
+	arr = regexp.MustCompile(_PARSE_LINE).FindStringSubmatch(line)
+	if len(arr) == 0 || arr[0] == "" {
+		debug("can't parse line: %s sur %s", _PARSE_LINE, line)
+		return r, nil, fmt.Errorf("wrong response definition")
+	}
 
-	if len(att) == 2 {
-		r.Description = att[1]
-	} else if len(att) == 3 {
-		// todo what is att[1] then?
-		r.Description = att[2]
+	// Define attributes
+	type_name, description := arr[1], arr[2:]
+
+	// Parse type
+	res := regexp.MustCompile(_PARSE_TYPE).FindStringSubmatch(type_name)
+	if len(res) == 0 {
+		debug("can't parse type: %s sur %s", _PARSE_TYPE, type_name)
+		return r, nil, fmt.Errorf("wrong type definition")
+	}
+	type_name = res[1]
+
+	// Create the object
+	r = Response{
+		Type: Type(type_name),
+		Description: strings.Trim(strings.Join(description, " "), ` 	`),
 	}
 
 	_, r.Type, register_types, err = formatType(string(r.Type))
@@ -235,7 +285,7 @@ func parseExample(att []string) (e Example, err error) {
 	e = Example{}
 
 	reg_URI := regexp.MustCompile(`^\/`)
-	reg_body := regexp.MustCompile(`^\{$`)
+	reg_body := regexp.MustCompile(`^\{`)
 	reg_response := regexp.MustCompile(`^([0-9]+): (.+)$`)
 	reg_endlineJSON := regexp.MustCompile(`^(?:\}|\]),?$`)
 	currently := "description"

@@ -1,16 +1,22 @@
-package doc2raml
+package godoc2api
 
 import (
 	"reflect"
 
-	"github.com/cometapp/midgar/doc2raml/raml"
+	"github.com/florenthobein/godoc2api/raml"
 )
 
+// Annotation type, mirror of the RAML equivalent
 type Annotation struct{}
 
-func DefineAnnotation(name string, kind reflect.Kind) {
+// Configure a new annotation type.
+// All the routes that declare the tag `tag_name` will receive
+// this annotation.
+func DefineAnnotation(tag_name string, kind reflect.Kind) {
 	// Store the keyword
-	reserveKeyword(name, KEYWORD_TYPE_ANNOTATION)
+	reserveTag(tag_name, _TAG_TYPE_ANNOTATION)
+
+	// todo
 }
 
 func (a *Annotation) fillToRAML(index *map[string]raml.AnnotationType) error {

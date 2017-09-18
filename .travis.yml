@@ -1,0 +1,13 @@
+language: go
+sudo: false
+
+env: PATH=$HOME/gopath/bin:$PATH
+
+go:
+  - tip
+  - 1.6
+
+install:
+  - go get github.com/fatih/structs
+
+script: go run ./test/main.go -log 0 #default go test -v ./...

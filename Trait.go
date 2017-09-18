@@ -1,16 +1,18 @@
-package doc2raml
+package godoc2api
 
-import (
-	"reflect"
+import "github.com/florenthobein/godoc2api/raml"
 
-	"github.com/cometapp/midgar/doc2raml/raml"
-)
-
+// Trait, mirror of the RAML equivalent
 type Trait struct{}
 
-func DefineTrait(name string, kind reflect.Kind) {
+// Configure a new trait.
+// All the routes that declare the tag tag_name will be considered
+// using this trait.
+func DefineTrait(tag_name string, t interface{}) {
 	// Store the keyword
-	reserveKeyword(name, KEYWORD_TYPE_TRAIT)
+	reserveTag(tag_name, _TAG_TYPE_TRAIT)
+
+	// todo
 }
 
 func (t *Trait) fillToRAML(index *map[string]raml.Trait) error {

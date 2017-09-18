@@ -3,8 +3,9 @@
 // Fix: combinable enums is not RAML 1.0 compliant
 // Improvement: Verification of missing URI params
 // Improvement: Handle array type definitions like: (string | Person)[] (https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/#type-expressions)
+// Improvement: Create files for types to include
 
-package doc2raml
+package godoc2api
 
 import (
 	"fmt"
@@ -14,24 +15,22 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cometapp/midgar/doc2raml/raml"
+	"github.com/florenthobein/godoc2api/raml"
 )
 
-// Settings
+// Default settings used for rendering the RAML root document
 const (
-	DEFAULT_TITLE      = "Your API"
-	DEFAULT_VERSION    = "v1"
-	DEFAULT_URL        = "http://localhost/{v1}"
-	DEFAULT_MEDIA_TYPE = "application/json"
-
-	DEFAULT_OUTPUT_DIR = "raml"
+	_DEFAULT_TITLE      = "Your API"
+	_DEFAULT_VERSION    = "v1"
+	_DEFAULT_URL        = "http://localhost/{v1}"
+	_DEFAULT_MEDIA_TYPE = "application/json"
+	_DEFAULT_OUTPUT_DIR = "raml"
 )
 
-const (
-	TAG_NAME = "raml"
-)
+// The tag that is used to parse an evenutal input struct that describes a route
+const _MAIN_TAG_NAME = "raml"
 
-// Documentation
+// Main documentation struct, used to render a complete RAML documentation.
 type Documentation struct {
 	Title       string
 	Description string
@@ -45,7 +44,45 @@ type Documentation struct {
 	annotations map[string]Annotation
 }
 
-// Add a route to the documentation
+// Add a route to the documentation.
+//
+// Adding a route via a handler function
+//
+// A route can be registered throught its http handler function, in that case the function should be fully documented, including with the tag `@resource` and `@method` (cf Reserved tags https://godoc.org/github.com/florenthobein/godoc2api/#pkg-constants).
+//
+// Example:
+//	// Define a http handler
+//	// @resource GET /myroute
+//	// @response {MyObject}
+//	func MyHandler(http.ResponseWriter, *http.Request) { ... }
+//
+//	...
+//
+//	// Register the route
+//	d := godoc2api.Documentation{}
+//	d.AddRoute(MyHandler)
+//
+// Adding a route via a struct
+//
+// A route can also be registered via a struct which fields use the tag `raml`, matching the reserved tags (cf Reserved tags https://godoc.org/github.com/florenthobein/godoc2api/#pkg-constants).
+//
+// Example:
+//	// Define a http handler
+//	func MyHandler(http.ResponseWriter, *http.Request) { ... }
+//
+//	...
+//
+//	// Custom route definition struct
+//	type MyRouteDefinition struct {
+//		Resource string `raml:"resource"`
+//		Resp     string `raml:"response"`
+//	}
+//
+//	...
+//
+//	// Register the route
+//	d := godoc2api.Documentation{}
+//	d.AddRoute(MyRouteDefinition{ "GET /myroute", "MyObject" })
 func (d *Documentation) AddRoute(user_route interface{}) error {
 
 	r := Route{_documentation: d}
@@ -57,22 +94,22 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 		return err
 	}
 
-	// If there is extra keywords in the user_route,
+	// If there is extra tags in the user_route,
 	// Fill the route with it
 	if extra != nil {
 		for k, v := range extra {
-			err := r.AddKeyword(k, v)
+			err := r.addTag(k, v)
 			if err != nil {
 				warn("%v (%v)", err, user_route)
 			}
 		}
 	}
 
-	// Parse the comment to extract keywords
-	keywords := parseComment(c)
-	for keyword, values := range keywords {
+	// Parse the comment to extract tags
+	tags := parseComment(c)
+	for keyword, values := range tags {
 		for _, fields := range values {
-			err := r.AddKeyword(keyword, fields)
+			err := r.addTag(keyword, fields)
 			if err != nil {
 				warn("%v (%v)", err, user_route)
 			}
@@ -80,7 +117,7 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 	}
 
 	// Check if the route is usable
-	if err := r.Check(); err != nil {
+	if err := r.check(); err != nil {
 		warn("unusable route: %v (%v)", err, user_route)
 		return err
 	}
@@ -89,35 +126,35 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 	if d.routes == nil {
 		d.routes = make(map[string]Route)
 	}
-	d.routes[r.Signature()] = r
+	d.routes[r.signature()] = r
 
 	return nil
 }
 
-// Render the RAML file
+// Render the documentation into a RAML file in the designated directory.
 func (d *Documentation) Render(dirname string) error {
 
 	sep := string(filepath.Separator)
 
 	if dirname == "" {
-		warn("no output directory specified, rendering to default %s", DEFAULT_OUTPUT_DIR)
-		dirname = DEFAULT_OUTPUT_DIR
+		warn("no output directory specified, rendering to default %s", _DEFAULT_OUTPUT_DIR)
+		dirname = _DEFAULT_OUTPUT_DIR
 	} else {
 		dirname = strings.Trim(dirname, " "+sep)
 	}
 
 	// Fill the empty fields
 	if d.Title == "" {
-		d.Title = DEFAULT_TITLE
+		d.Title = _DEFAULT_TITLE
 	}
 	if d.Version == "" {
-		d.Version = DEFAULT_VERSION
+		d.Version = _DEFAULT_VERSION
 	}
 	if d.URL == "" {
-		d.URL = DEFAULT_URL
+		d.URL = _DEFAULT_URL
 	}
 	if d.MediaType == "" {
-		d.MediaType = DEFAULT_MEDIA_TYPE
+		d.MediaType = _DEFAULT_MEDIA_TYPE
 	}
 
 	// Format the document to a RAML structure

@@ -1,6 +1,6 @@
-package doc2raml
+package godoc2api
 
-import "github.com/cometapp/midgar/doc2raml/raml"
+import "github.com/florenthobein/godoc2api/raml"
 
 type Response struct {
 	Type        Type

@@ -1,6 +1,6 @@
 // The reader is responsible for processing and storing the comments
 
-package doc2raml
+package godoc2api
 
 import (
 	"bufio"
@@ -11,10 +11,8 @@ import (
 	"runtime"
 )
 
-const (
-	// Reflect signature of a callback
-	CALLBACK_SIGNATURE = "func(http.ResponseWriter, *http.Request)"
-)
+// Reflect signature of a callback
+const _CALLBACK_SIGNATURE = "func(http.ResponseWriter, *http.Request)"
 
 // Store all the comment strings describing a callback
 // identified by by its file path and line number
@@ -28,7 +26,7 @@ func readComment(user_route interface{}) (c string, extra map[string]interface{}
 	extra = map[string]interface{}{}
 
 	v := reflect.ValueOf(user_route)
-	if v.Type().String() == CALLBACK_SIGNATURE {
+	if v.Type().String() == _CALLBACK_SIGNATURE {
 		// If the input is a callback
 		// go directly to fetching the comment
 		callback = v.Pointer()
@@ -37,17 +35,20 @@ func readComment(user_route interface{}) (c string, extra map[string]interface{}
 		// to find out about the callback and if possible,
 		// about extra keywords
 		for i := 0; i < v.NumField(); i++ {
-			f := v.Type().Field(i)
-			tag := f.Tag.Get(TAG_NAME)
+			f := v.Field(i)
+			tf := v.Type().Field(i)
+			tag := tf.Tag.Get(_MAIN_TAG_NAME)
 			if tag == "" {
 				continue
 			}
-			if tag == KEYWORD_CALLBACK && v.Field(i).Type().String() == CALLBACK_SIGNATURE {
-				callback = v.Field(i).Pointer()
-			} else if f.Type.Kind() == reflect.String {
-				extra[tag] = v.Field(i).String()
-			} else if f.Type.Kind() == reflect.Bool {
-				extra[tag] = v.Field(i).Bool()
+			if tag == TAG_HANDLER && f.Type().String() == _CALLBACK_SIGNATURE {
+				callback = f.Pointer()
+			} else if tf.Type.Kind() == reflect.String {
+				extra[tag] = f.String()
+			} else if tf.Type.Kind() == reflect.Bool {
+				extra[tag] = f.Bool()
+			} else if tf.Type.Kind() == reflect.Slice {
+				extra[tag] = f.Interface()
 			}
 		}
 	}
@@ -63,7 +64,7 @@ func readComment(user_route interface{}) (c string, extra map[string]interface{}
 	// Alert if there is no comment but continue, maybe it has
 	// been defined through the extra keywords
 	if c == "" {
-		warn("no comments for the function: %v\n", runtime.FuncForPC(callback).Name())
+		warn("the handler doesn't have any comment or its content is empty: %v\n", runtime.FuncForPC(callback).Name())
 	}
 
 	return

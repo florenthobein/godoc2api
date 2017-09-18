@@ -1,6 +1,6 @@
-package doc2raml
+package godoc2api
 
-import "github.com/cometapp/midgar/doc2raml/raml"
+import "github.com/florenthobein/godoc2api/raml"
 
 type Parameter struct {
 	Name        string
@@ -8,6 +8,7 @@ type Parameter struct {
 	Description string
 	Enum        []interface{}
 	Example     string
+	Default     interface{}
 }
 
 func (p *Parameter) toRAML() (t raml.Type, err error) {
@@ -28,6 +29,9 @@ func (p *Parameter) toRAML() (t raml.Type, err error) {
 	// }
 	if p.Example != "" {
 		t.Example = p.Example
+	}
+	if p.Default != "" {
+		t.Default = p.Default
 	}
 	return
 }

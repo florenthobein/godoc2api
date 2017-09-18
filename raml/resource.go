@@ -37,26 +37,26 @@ type Resource struct {
 	// resource. A method MUST be one of the HTTP methods defined in the
 	// HTTP version 1.1 specification [RFC2616] and its extension,
 	// RFC5789 [RFC5789].
-	Get     //Method `yaml:"get,omitempty"`
-	Patch   //Method `yaml:"patch,omitempty"`
-	Put     //Method `yaml:"put,omitempty"`
-	Head    //Method `yaml:"head,omitempty"`
-	Post    //Method `yaml:"post,omitempty"`
-	Delete  //Method `yaml:"delete,omitempty"`
-	Options //Method `yaml:"options,omitempty"`
+	Get     *Method `yaml:"get,omitempty"`
+	Patch   *Method `yaml:"patch,omitempty"`
+	Put     *Method `yaml:"put,omitempty"`
+	Head    *Method `yaml:"head,omitempty"`
+	Post    *Method `yaml:"post,omitempty"`
+	Delete  *Method `yaml:"delete,omitempty"`
+	Options *Method `yaml:"options,omitempty"`
 
 	// A list of traits to apply to all methods declared (implicitly or explicitly) for this resource.
 	// Individual methods can override this declaration.
 	// TODO
-	//////// Is []DefinitionChoice `yaml:"is,omitempty"`
+	//////// Is []interface{} `yaml:"is,omitempty"`
 
 	// The resource type that this resource inherits.
 	// TODO
-	//////// Type//DefinitionChoice `yaml:"type,omitempty"`
+	//////// Type interface{} `yaml:"type,omitempty"`
 
 	// The security schemes that apply to all methods declared (implicitly or explicitly) for this resource.
 	// TODO
-	//////// SecuredBy []DefinitionChoice `yaml:"securedBy,omitempty"`
+	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
 
 	// A resource defined as a child node of another resource is called a nested resource.
 	// The key of the child node is the URI of the nested resource relative to the
@@ -64,7 +64,7 @@ type Resource struct {
 	NestedResources map[string]*Resource `yaml:",inline"`
 
 	// If this is not nil, then this resource is a nested resource.
-	Parent //Resource `yaml:"-"`
+	Parent *Resource `yaml:"-"`
 
 	// All methods of this resource. (helper)
 	Methods []*Method `yaml:"-"`

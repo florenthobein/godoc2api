@@ -49,7 +49,7 @@ type Method struct {
 	Responses map[HTTPCode]Response `yaml:"responses,omitempty"`
 
 	// A request body that the method admits.
-	Body //Body `yaml:"body,omitempty"`
+	Body *Body `yaml:"body,omitempty"`
 
 	// Explicitly specify the protocol(s) used to invoke a method,
 	// thereby overriding the protocols set elsewhere,
@@ -59,9 +59,9 @@ type Method struct {
 
 	// A list of the traits to apply to this method.
 	// TODO
-	//////// Is []DefinitionChoice `yaml:"is,omitempty"`
+	//////// Is []interface{} `yaml:"is,omitempty"`
 
 	// The security schemes that apply to this method.
 	// TODO
-	//////// SecuredBy []DefinitionChoice `yaml:"securedBy,omitempty"`
+	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
 }

@@ -1,11 +1,13 @@
-go-doc2raml [![Build Status](https://travis-ci.org/florenthobein/go-doc2raml.svg?branch=master)](https://travis-ci.org/florenthobein/go-doc2raml)
+**WORK IN PROGRESS**
+
+godoc2api [![Build Status](https://travis-ci.org/florenthobein/godoc2api.svg?branch=master)](https://travis-ci.org/florenthobein/godoc2api)
 ===
 Easily describe your API by writing JSdoc-like golang comments that renders into a [RAML 1.0](https://raml.org/) file
 
 # About
 ## What is RAML?
 
-> RESTful API Modeling Language (RAML) is a YAML-based language for describing RESTful APIs. It provides all the information necessary to describe RESTful or practically RESTful APIs. [...] It encourages reuse, enables discovery and pattern-sharing and aims for merit-based emergence of best practices.
+> RESTful API Modeling Language (RAML) is a YAML-based language for describing RESTful APIs. It provides all the information necessary to describe RESTful or practically RESTful APIs.
 [Wikipedia](https://en.wikipedia.org/wiki/RAML_(software))
 
 ## Documentation-oriented design of APIs
@@ -15,7 +17,7 @@ Easily describe your API by writing JSdoc-like golang comments that renders into
 # Installation
 
 ```bash
-go get github.com/florenthobein/go-doc2raml
+go get github.com/florenthobein/godoc2api
 ```
 
 # Usage
@@ -43,6 +45,13 @@ go get github.com/florenthobein/go-doc2raml
 ## Defining annotations
 
 > todo
+
+# Debugging
+
+Change the log level of the library to display warnings:
+```golang
+godoc2api.LogLevel = godoc2api.LOG_WARN
+```
 
 # Roadmap
 

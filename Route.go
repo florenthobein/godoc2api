@@ -1,10 +1,11 @@
-package doc2raml
+package godoc2api
 
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
-	"github.com/cometapp/midgar/doc2raml/raml"
+	"github.com/florenthobein/godoc2api/raml"
 )
 
 // Fully describe a route
@@ -26,44 +27,99 @@ type Route struct {
 	_documentation *Documentation
 }
 
-func (r *Route) Signature() string {
+func (r *Route) signature() string {
 	return fmt.Sprint("%s %s", r.Method, r.Resource)
 }
 
-func (r *Route) AddKeyword(keyword string, value interface{}) (err error) {
+// Add and parse a tag to the Route object
+func (r *Route) addTag(tag string, value interface{}) (err error) {
 	kind := reflect.TypeOf(value).Kind()
-	switch keyword {
-	case KEYWORD_METHOD:
-		if kind != reflect.String {
-			return fmt.Errorf("wrong kind for the keyword %s: string expected", keyword)
+
+	var checkString = func() (string, error) {
+		v := ""
+		if kind == reflect.String {
+			v = value.(string)
+		} else if kind == reflect.Slice {
+			v = strings.Join(value.([]string), "")
+		} else {
+			return "", fmt.Errorf("wrong kind for the tag %s: string expected", tag)
 		}
-		r.Method, err = parseMethod(value.(string))
-		return
-	case KEYWORD_RESOURCE:
-		if kind != reflect.String {
-			return fmt.Errorf("wrong kind for the keyword %s: string expected", keyword)
+		return v, nil
+	}
+	var checkArray = func() ([]string, error) {
+		v := []string{}
+		if kind == reflect.String {
+			if value.(string) == "" {
+				return v, nil
+			}
+			v = []string{value.(string)}
+		} else if kind == reflect.Slice {
+			v = value.([]string)
+		} else {
+			return []string{}, fmt.Errorf("wrong kind for the tag %s: []string expected", tag)
+		}
+		return v, nil
+	}
+	var checkArrayArray = func() ([][]string, error) {
+		v := [][]string{}
+		if kind == reflect.String {
+			if value.(string) == "" {
+				return v, nil
+			}
+			v = [][]string{[]string{value.(string)}}
+		} else if kind == reflect.Slice {
+			v = value.([][]string)
+		} else {
+			return [][]string{}, fmt.Errorf("wrong kind for the tag %s: [][]string expected", tag)
+		}
+		return v, nil
+	}
+
+	switch tag {
+	case TAG_METHOD:
+		v, err := checkString()
+		if err != nil || v == "" {
+			return err
+		}
+		r.Method, err = parseMethod(v)
+		return err
+	case TAG_RESOURCE:
+		v, err := checkString()
+		if err != nil || v == "" {
+			return err
 		}
 		method := ""
-		r.Resource, method, err = parseResource(value.(string))
+		r.Resource, method, err = parseResource(v)
 		if method != "" {
-			r.AddKeyword(KEYWORD_METHOD, method)
+			r.addTag(TAG_METHOD, method)
 		}
-		return
-	case KEYWORD_DESCRIPTION:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+		return err
+	case TAG_DESCRIPTION:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
 		}
 		title := ""
-		r.Description, title, err = parseDescription(value.([]string))
+		r.Description, title, err = parseDescription(v)
 		if title != "" {
 			r.Name = title
 		}
-		return
-	case KEYWORD_ROUTE:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+		return err
+	case TAG_ROUTES:
+		vs, err := checkArrayArray()
+		if err != nil || len(vs) == 0 {
+			return err
 		}
-		p, register_types, err := parseParameter(value.([]string), false)
+		for _, v := range vs {
+			r.addTag(TAG_ROUTE, v)
+		}
+		return err
+	case TAG_ROUTE:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
+		}
+		p, register_types, err := parseParameter(v, false)
 		if err != nil {
 			return err
 		}
@@ -73,17 +129,24 @@ func (r *Route) AddKeyword(keyword string, value interface{}) (err error) {
 		r.URIParameters[p.Name] = p
 		// Store a Type definition in the Documentation
 		for _, new_t := range register_types {
-			// if new_t.isUnknown() {
-			// 	logging.Debug(string(new_t))
-			// }
 			r._documentation.addType(new_t)
 		}
 		return err
-	case KEYWORD_QUERY:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+	case TAG_QUERIES:
+		vs, err := checkArrayArray()
+		if err != nil || len(vs) == 0 {
+			return err
 		}
-		p, register_types, err := parseParameter(value.([]string), false)
+		for _, v := range vs {
+			r.addTag(TAG_QUERY, v)
+		}
+		return err
+	case TAG_QUERY:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
+		}
+		p, register_types, err := parseParameter(v, false)
 		if err != nil {
 			return err
 		}
@@ -93,17 +156,15 @@ func (r *Route) AddKeyword(keyword string, value interface{}) (err error) {
 		r.QueryParameters[p.Name] = p
 		// Store a Type definition in the Documentation
 		for _, new_t := range register_types {
-			// if new_t.isUnknown() {
-			// 	logging.Debug(string(new_t))
-			// }
 			r._documentation.addType(new_t)
 		}
 		return err
-	case KEYWORD_BODY:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+	case TAG_BODY:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
 		}
-		p, register_types, err := parseParameter(value.([]string), true)
+		p, register_types, err := parseParameter(v, true)
 		if err != nil {
 			return err
 		}
@@ -113,34 +174,39 @@ func (r *Route) AddKeyword(keyword string, value interface{}) (err error) {
 		r.BodyParameters[p.Name] = p
 		// Store a Type definition in the Documentation
 		for _, new_t := range register_types {
-			// if new_t.isUnknown() {
-			// 	logging.Debug(string(new_t))
-			// }
 			r._documentation.addType(new_t)
 		}
 		break
-	case KEYWORD_RESPONSE:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+	case TAG_RESPONSE:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
 		}
-		resp, register_types, err := parseResponse(value.([]string))
+		resp, register_types, err := parseResponse(v)
 		if err != nil {
 			return err
 		}
 		r.Response = &resp
 		// Store a Type definition in the Documentation
 		for _, new_t := range register_types {
-			// if new_t.isUnknown() {
-			// 	logging.Debug(string(new_t))
-			// }
 			r._documentation.addType(new_t)
 		}
 		break
-	case KEYWORD_EXAMPLE:
-		if kind != reflect.Slice {
-			return fmt.Errorf("wrong kind for the keyword %s: []string expected", keyword)
+	case TAG_EXAMPLES:
+		vs, err := checkArrayArray()
+		if err != nil || len(vs) == 0 {
+			return err
 		}
-		e, err := parseExample(value.([]string))
+		for _, v := range vs {
+			r.addTag(TAG_EXAMPLE, v)
+		}
+		return err
+	case TAG_EXAMPLE:
+		v, err := checkArray()
+		if err != nil || len(v) == 0 {
+			return err
+		}
+		e, err := parseExample(v)
 		if err != nil {
 			return err
 		}
@@ -151,31 +217,31 @@ func (r *Route) AddKeyword(keyword string, value interface{}) (err error) {
 		r.Examples[name] = e
 		break
 	default:
-		if kw_type, ok := isReservedKeyword(keyword); ok {
+		if kw_type, ok := isReservedTag(tag); ok {
 			switch kw_type {
-			case KEYWORD_TYPE_ANNOTATION:
+			case _TAG_TYPE_ANNOTATION:
 				// todo
 				parseAnnotation(value)
 				break
-			case KEYWORD_TYPE_TRAIT:
+			case _TAG_TYPE_TRAIT:
 				// todo
 				parseTrait(value)
 				break
-			case KEYWORD_TYPE_SECURITY:
+			case _TAG_TYPE_SECURITY:
 				// todo
 				parseSecurity(value)
 				break
 			default:
-				err = fmt.Errorf("unkown keyword type %d for %s", kw_type, keyword)
+				err = fmt.Errorf("unkown tag type %d for %s", kw_type, tag)
 			}
 		} else {
-			err = fmt.Errorf("unkown keyword %s", keyword)
+			err = fmt.Errorf("unkown tag %s", tag)
 		}
 	}
 	return
 }
 
-func (r *Route) Check() error {
+func (r *Route) check() error {
 	if r.Method == "" {
 		return fmt.Errorf("no method found")
 	}
