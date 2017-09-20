@@ -3,6 +3,7 @@ package godoc2api
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/florenthobein/godoc2api/raml"
@@ -241,12 +242,36 @@ func (r *Route) addTag(tag string, value interface{}) (err error) {
 	return
 }
 
-func (r *Route) check() error {
+// Check if a route can be described
+func (r *Route) checkViability() error {
 	if r.Method == "" {
 		return fmt.Errorf("no method found")
 	}
 	if r.Resource == "" {
 		return fmt.Errorf("no resource found")
+	}
+	return nil
+}
+
+// Check URI parameters
+func (r *Route) checkURIParameters() error {
+	ps := regexp.MustCompile(`\{([^\}]+)\}`).FindStringSubmatch(r.Resource)
+	if len(ps) == 0 {
+		return nil
+	}
+	if (*r).URIParameters == nil {
+		return fmt.Errorf("no URIParameters")
+	}
+	missing := []string{}
+	ps = ps[1:len(ps)]
+	for _, p := range ps {
+		if _, ok := (*r).URIParameters[p]; !ok {
+			missing = append(missing, p)
+		}
+	}
+	if len(missing) != 0 {
+
+		return fmt.Errorf("missing URIParameters %v", missing)
 	}
 	return nil
 }

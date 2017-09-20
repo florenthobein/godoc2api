@@ -1,9 +1,7 @@
 // Godoc2API
 
 // todo
-// Fix: piling of raml.Root
 // Fix: combinable enums is not RAML 1.0 compliant
-// Improvement: Verification of missing URI params
 // Improvement: Handle array type definitions like: (string | Person)[] (https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/#type-expressions)
 // Improvement: Create files for types to include
 
@@ -97,8 +95,8 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 		return err
 	}
 
-	// If there is extra tags in the user_route,
-	// Fill the route with it
+	// If `user_route` is a struct and tags are already defined inside,
+	// fill the route with it
 	if extra != nil {
 		for k, v := range extra {
 			err := r.addTag(k, v)
@@ -108,7 +106,7 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 		}
 	}
 
-	// Parse the comment to extract tags
+	// Parse the comment to extract tags and add it to the route
 	tags := parseComment(c)
 	for keyword, values := range tags {
 		for _, fields := range values {
@@ -119,10 +117,15 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 		}
 	}
 
-	// Check if the route is usable
-	if err := r.check(); err != nil {
+	// Check if the route can be used
+	if err := r.checkViability(); err != nil {
 		warn("unusable route: %v (%v)", err, user_route)
 		return err
+	}
+
+	// Check if the route is coherent
+	if err := r.checkURIParameters(); err != nil {
+		warn("uncoherent route: %v (%s)", err, r.Resource)
 	}
 
 	// Store the route
