@@ -3,23 +3,6 @@
 // Inspired by RAML 1.0 specs
 // https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md
 // and https://github.com/Jumpscale/go-raml/tree/master/raml
-//
-// todo
-// fix: error when piling
-// /users:
-//   uriParameters:
-//     id:
-//       type: uuid
-//       description: identifier of the user
-//   delete:
-//     description: Remove a user from the database
-//   /{id}:
-//     get:
-//       description: Get a user's public profile
-//       queryParameters:
-//         stats:
-//           type: boolean
-//           description: if set to `true`, retrieve the user stats as well
 
 package raml
 
@@ -207,13 +190,15 @@ func (root *Root) PileResources() {
 
 	// Filter the URI parameters of a RAML resource with a string URI
 	var filterURIParameters = func(r *Resource, filter string) {
-		ps := regexp.MustCompile(`\{(.+)\}`).FindStringSubmatch(filter)
+		ps := regexp.MustCompile(`\{([^\}]+)\}`).FindStringSubmatch(filter)
 		if len(ps) <= 1 {
 			(*r).URIParameters = nil
 			return
 		}
 		ps = ps[1:len(ps)]
 		var filtered map[string]Type
+		// Get only the ones that are in URIParameters
+		// and in the filter
 		for _, p := range ps {
 			if v, ok := (*r).URIParameters[p]; ok {
 				if filtered == nil {
@@ -234,17 +219,20 @@ func (root *Root) PileResources() {
 			end := "/" + strings.Join(broken[i:max], "/")
 			if _, ok := index[base]; ok {
 
-				// Modify the parent
+				// Save the child in the parent
 				p := index[base]
 				if p.NestedResources == nil {
 					p.NestedResources = make(map[string]*Resource)
 				}
 				p.NestedResources[end] = r
 
-				// Modify the child
+				// Save the parent in the child
 				r.Parent = p
+
+				// Filter the URI parameters
 				filterURIParameters(r, end)
 
+				// Store in the index
 				index[base] = p
 				index[current] = r
 				break
@@ -256,6 +244,8 @@ func (root *Root) PileResources() {
 	root_resources := make(map[string]Resource)
 	for k, r := range index {
 		if r.Parent == nil {
+			// Filter the URI parameters for the root resources
+			filterURIParameters(r, r.URI)
 			root_resources[k] = *r
 		}
 	}
