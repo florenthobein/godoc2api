@@ -102,6 +102,15 @@ func CreateBooksDEPRECATED(rw http.ResponseWriter, r *http.Request) {
 // @route {uuid} id - The identifier of the book
 // @query {bool} with_metadata - If set to `true`, includes metadatas in the response
 // @response {Book} - The book that you wanted
+// @example	Retrive a classic
+//	/books/ca761232-ed42-11ce-bacd-00aa0057b223?with_metadata=false
+//	200: {
+//		"id": "ca761232-ed42-11ce-bacd-00aa0057b223",
+//		"name": "Cyrano de bergerac",
+//		"author": "Edmond Rostand",
+//		"price": 10.3,
+//		"stars": 2
+//	}
 func GetBook(rw http.ResponseWriter, r *http.Request) {
 	// ...doing things...
 	rw.WriteHeader(200)

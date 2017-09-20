@@ -38,7 +38,7 @@ func TestWithRouteDefinition(t *testing.T) {
 		URL:         "http://mywebsite/{version}",
 	}
 
-	// Add the a full route definition, the handler is not commented
+	// Add a full route definition, the handler is not commented
 	err := doc.AddRoute(RouteDefinition{
 		Method:      "POST",
 		Resource:    "/myroute/{id}",
@@ -76,7 +76,7 @@ func TestWithHandler(t *testing.T) {
 		URL:         "http://mywebsite/{version}",
 	}
 
-	// Add the a full route definition, the handler is not commented
+	// Add a simple handler without additional comment
 	err := doc.AddRoute(MyHanderWithAllTheComments)
 	if err != nil {
 		t.Errorf(err.Error())
@@ -99,7 +99,7 @@ func TestBalanced(t *testing.T) {
 		URL:         "http://mywebsite/{version}",
 	}
 
-	// Add the a full route definition, the handler is not commented
+	// A more balanced approach
 	err := doc.AddRoute(RouteDefinition{
 		Resource: "GET /myroute/{id}",
 		Handler:  MyHanderWithFewComments,
@@ -116,17 +116,17 @@ func TestBalanced(t *testing.T) {
 }
 
 type RouteDefinition struct {
-	Method      string                                   `raml:"method"`
-	Resource    string                                   `raml:"resource"`
-	Description string                                   `raml:"description"`
-	Handler     func(http.ResponseWriter, *http.Request) `raml:"handler"`
-	RouteParams [][]string                               `raml:"routes"`
-	QueryParams [][]string                               `raml:"queries"`
-	Body        string                                   `raml:"body"`
-	Response    string                                   `raml:"response"`
-	Examples    [][]string                               `raml:"examples"`
-	Auth        bool                                     `raml:"auth"`
-	Deprecated  bool                                     `raml:"deprecated"`
+	Method      string           `raml:"method"`
+	Resource    string           `raml:"resource"`
+	Description string           `raml:"description"`
+	Handler     http.HandlerFunc `raml:"handler"`
+	RouteParams [][]string       `raml:"routes"`
+	QueryParams [][]string       `raml:"queries"`
+	Body        string           `raml:"body"`
+	Response    string           `raml:"response"`
+	Examples    [][]string       `raml:"examples"`
+	Auth        bool             `raml:"auth"`
+	Deprecated  bool             `raml:"deprecated"`
 }
 
 func MyHanderWithoutComment(rw http.ResponseWriter, r *http.Request) {
