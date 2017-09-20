@@ -30,15 +30,20 @@ go get github.com/florenthobein/godoc2api
 
 # Limitations
 
-For now only RAML 1.0 specification is supported. It also mainly focuses on a full `application/json` API.
+For now only RAML 1.0 specification is supported. It also mainly focuses on a full `application/json` API, as input and output.
 
 # Usage
 
 ## Examples
 
-Detailed examples are written on the [godoc page](https://godoc.org/github.com/florenthobein/godoc2api/examples)
+Detailed examples are written on the [godoc page](https://godoc.org/github.com/florenthobein/godoc2api/examples), including RAML outputs. \
+Code in the [`examples`](https://github.com/florenthobein/godoc2api/tree/master/examples) folder.
 
-# Comment parsing
+## Comment parsing
+
+> todo
+
+## Tag list
 
 > todo
 
