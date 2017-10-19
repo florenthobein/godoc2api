@@ -73,9 +73,9 @@ type Root struct {
 	// The API definition can include a variety of documents that serve as a
 	// user guides and reference documentation for the API. Such documents can
 	// clarify how the API works or provide business context.
-	// All the sections are in the order in which the documentation is declared.
-	// TODO
-	//////// Documentation []interface{} `yaml:"documentation,omitempty"`
+	// The value of the documentation node is a sequence of one or more documents.
+	// Each document is a map that MUST have exactly two key-value pairs: title and content
+	Documentation []map[string]string `yaml:"documentation,omitempty"`
 
 	// An alias for the equivalent "types" property for compatibility with RAML 0.8.
 	// Deprecated - API definitions should use the "types" property

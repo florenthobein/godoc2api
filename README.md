@@ -12,7 +12,7 @@ godoc2api [![Build Status](https://travis-ci.org/florenthobein/godoc2api.svg?bra
 
 ## Documentation-oriented design of APIs
 
-An API is a living thing -- wether it's from a designer, a builder or a consumer point of view, maintaining a coherent and up-to-date documentation of its endpoints is mandatory.
+An API is a living thing - wether it's from a designer, a builder or a consumer point of view, maintaining a coherent and up-to-date documentation of its endpoints is mandatory.
 
 `godoc2api` simplifies this process by peeping into your go code to extract and generate a structured, comprehensible API documentation.
 
@@ -35,6 +35,42 @@ For now only RAML 1.0 specification is supported. It also mainly focuses on a fu
 # Usage
 
 ## Examples
+
+Say you've defined the following route / handler
+
+```golang
+func main () {
+    http.HandleFunc("/myroute", myHander)
+    http.ListenAndServe(":8080", nil)
+}
+func myHander(rw http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(rw, "Hello world!")
+}
+```
+Simply add comments to you handler like this
+```golang
+// An endpoint that just says hi
+// @resource GET /myroute
+func myHander(rw http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(rw, "Hello world!")
+}
+```
+That's it! Now you can generate the documentation:
+```golang
+import "github.com/florenthobein/godoc2api"
+func main () {
+    // Define your normal route
+    http.HandleFunc("/myroute", myHander)
+
+    // Define your documentation and save it
+    doc := godoc2api.Documentation{URL: "http://localhost:8080"}
+    doc.AddRoute(myHander)
+    doc.Save("example_basic/")
+
+    // Run your webserver
+    http.ListenAndServe(":8080", nil)
+}
+```
 
 Detailed examples are written on the [godoc page](https://godoc.org/github.com/florenthobein/godoc2api/examples), including RAML outputs. \
 Code in the [`examples`](https://github.com/florenthobein/godoc2api/tree/master/examples) folder.

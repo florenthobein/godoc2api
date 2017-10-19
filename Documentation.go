@@ -8,6 +8,7 @@
 package godoc2api
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -33,16 +34,17 @@ const _MAIN_TAG_NAME = "raml"
 
 // Main documentation struct, used to render a complete RAML documentation.
 type Documentation struct {
-	Title       string
-	Description string
-	Version     string
-	URL         string
-	MediaType   string
-	routes      map[string]Route
-	types       map[string]Type
-	traits      map[string]Trait
-	securities  map[string]Security
-	annotations map[string]Annotation
+	Title             string
+	Description       string
+	Version           string
+	URL               string
+	MediaType         string
+	UserDocumentation []map[string]string
+	routes            map[string]Route
+	types             map[string]Type
+	traits            map[string]Trait
+	securities        map[string]Security
+	annotations       map[string]Annotation
 }
 
 // Add a route to the documentation.
@@ -134,6 +136,21 @@ func (d *Documentation) AddRoute(user_route interface{}) error {
 	}
 	d.routes[r.signature()] = r
 
+	return nil
+}
+
+// Add an external documentation to describe the API
+func (d *Documentation) AddUserDocumentation(title, content string) error {
+	if title == "" || content == "" {
+		return errors.New("empty title or content")
+	}
+	if d.UserDocumentation == nil {
+		d.UserDocumentation = []map[string]string{}
+	}
+	d.UserDocumentation = append(d.UserDocumentation, map[string]string{
+		"title":   title,
+		"content": content,
+	})
 	return nil
 }
 
@@ -241,11 +258,12 @@ func (d *Documentation) addType(t Type) bool {
 // Transform the documentation into a RAML structure
 func (d *Documentation) toRAML() (raml.Root, error) {
 	api := raml.Root{
-		Title:       d.Title,
-		Description: d.Description,
-		Version:     d.Version,
-		BaseURI:     d.URL,
-		MediaType:   d.MediaType,
+		Title:         d.Title,
+		Description:   d.Description,
+		Version:       d.Version,
+		BaseURI:       d.URL,
+		MediaType:     d.MediaType,
+		Documentation: d.UserDocumentation,
 	}
 
 	// Create the resources
