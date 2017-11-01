@@ -1,0 +1,47 @@
+#%RAML 1.0
+---
+title: Test API
+description: API used for tests
+version: v1
+baseUri: http://mywebsite/{version}
+mediaType: application/json
+types:
+  MyStruct:
+    type: object
+    properties:
+      value_1: string
+      value_2: integer
+      value_3: boolean
+      value_4?: MyStruct2
+  MyStruct2:
+    type: object
+    properties:
+      value_5: datetime[]
+      value_6: map_string_any
+  map_string_any:
+    type: object
+    properties:
+      /^.*$/: any
+    additionalProperties: true
+securitySchemes:
+  auth:
+    type: x-bearer
+    description: Authenticate a user with her auth token in the header
+    describedBy:
+      headers:
+        Authorization:
+          example: Bearer _token_
+          description: The user auth token preceded by Bearer
+/myroute/{id}:
+  uriParameters:
+    id:
+      type: string
+      description: The id of my route
+  get:
+    description: A route that use a handler partially commented
+    responses:
+      200:
+        body:
+          application/json:
+            type: MyStruct
+    securedBy: [auth]

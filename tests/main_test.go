@@ -3,6 +3,7 @@ package godoc2api_test
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -11,25 +12,67 @@ import (
 	"github.com/florenthobein/godoc2api"
 )
 
+// Configuration before tests
 func init() {
 	godoc2api.LogLevel = godoc2api.LOG_DEBUG
 
-	// Configuration
-	godoc2api.DefineSecurity("auth", nil)    // todo
-	godoc2api.DefineTrait("deprecated", nil) // todo
+	// SecuritySchemes
+	godoc2api.DefineSecurity("auth", godoc2api.Security{
+		Type:        godoc2api.SECURITY_X_CUSTOM,
+		TypeName:    "x-bearer",
+		Description: "Authenticate a user with her auth token in the header",
+		Headers: map[string]godoc2api.Parameter{
+			"Authorization": godoc2api.Parameter{
+				Description: "The user auth token preceded by Bearer",
+				Example:     "Bearer _token_",
+			},
+		},
+	})
+
+	// Traits
+	godoc2api.DefineTrait("pagination", nil) // todo
+
+	// Annotations
+	godoc2api.DefineAnnotation("deprecated", nil) // todo
+
+	// Types
 	godoc2api.DefineType("MyStruct", MyStruct{})
 	godoc2api.DefineType("MyStruct2", MyStruct2{})
 
 	return
 }
 
+// Compare & teardown
+func finalize(folder string, t *testing.T) {
+	compare(folder, t)
+	teardown(folder)
+}
+
+// Compare results with fixtures at the end of the test
+func compare(folder string, t *testing.T) {
+	// Get fixture
+	fixture, err := ioutil.ReadFile("fixtures/" + folder + "/test_api_v1.raml")
+	if err != nil {
+		return
+	}
+	// Get the result
+	result, err := ioutil.ReadFile(folder + "/test_api_v1.raml")
+	if err != nil {
+		return
+	}
+	if string(result) != string(fixture) {
+		t.Errorf("unexpected result for %s", folder)
+	}
+}
+
+// Teardown after tests
 func teardown(folder string) {
 	os.RemoveAll(folder)
 }
 
 func TestWithRouteDefinition(t *testing.T) {
 	output_dir := "test1"
-	defer teardown(output_dir)
+	defer finalize(output_dir, t)
 
 	doc := godoc2api.Documentation{
 		Title:       "Test API",
@@ -57,17 +100,20 @@ func TestWithRouteDefinition(t *testing.T) {
 	})
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
 
 	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
+
 }
 
 func TestWithHandler(t *testing.T) {
 	output_dir := "test2"
-	defer teardown(output_dir)
+	defer finalize(output_dir, t)
 
 	doc := godoc2api.Documentation{
 		Title:       "Test API",
@@ -80,17 +126,19 @@ func TestWithHandler(t *testing.T) {
 	err := doc.AddRoute(MyHanderWithAllTheComments)
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
 
 	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
 }
 
 func TestBalanced(t *testing.T) {
 	output_dir := "test3"
-	defer teardown(output_dir)
+	defer finalize(output_dir, t)
 
 	doc := godoc2api.Documentation{
 		Title:       "Test API",
@@ -107,11 +155,13 @@ func TestBalanced(t *testing.T) {
 	})
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
 
 	err = doc.Save(output_dir)
 	if err != nil {
 		t.Errorf(err.Error())
+		return
 	}
 }
 

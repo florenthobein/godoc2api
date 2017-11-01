@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/florenthobein/godoc2api"
 )
@@ -21,6 +22,7 @@ func Example_bookshop() {
 
 	// Define your routes
 	routes := []RouteDefinition{
+		// RouteDefinition{"GET", "/books", GetBooks, false},
 		RouteDefinition{"POST", "/books", CreateBooks, true},
 		RouteDefinition{"POST", "/books/new", CreateBooksDEPRECATED, true},
 		RouteDefinition{"GET", "/books/{id}", GetBook, false},
@@ -29,8 +31,9 @@ func Example_bookshop() {
 	}
 
 	// Configure your documentation
-	godoc2api.DefineSecurity("auth", nil)    // todo
-	godoc2api.DefineTrait("deprecated", nil) // todo
+	// godoc2api.DefineSecurity("auth", nil)         // todo
+	// godoc2api.DefineTrait("pagination", nil)      // todo
+	// godoc2api.DefineAnnotation("deprecated", nil) // todo
 	godoc2api.DefineType("Book", Book{})
 	godoc2api.DefineTypeRAML("uuid", "string", map[string]interface{}{"pattern": `[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}`})
 	doc := godoc2api.Documentation{
@@ -67,7 +70,6 @@ func Example_bookshop() {
 // @response {Book} The created book
 // @example Create a classic
 //	{
-//		"id": "ca761232-ed42-11ce-bacd-00aa0057b223",
 //		"name": "Cyrano de bergerac",
 //		"author": "Edmond Rostand",
 //		"price": 10.3,
@@ -75,6 +77,7 @@ func Example_bookshop() {
 //	}
 //	200: {
 //		"id": "ca761232-ed42-11ce-bacd-00aa0057b223",
+//		"added_at": "2017-06-20T05:23:13.704Z",
 //		"name": "Cyrano de bergerac",
 //		"author": "Edmond Rostand",
 //		"price": 10.3,
@@ -98,6 +101,17 @@ func CreateBooksDEPRECATED(rw http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(rw).Encode(Book{})
 }
 
+// List available books
+// @query {bool} with_metadata - If set to `true`, includes metadatas in the response
+// @response {[]Book} - The list of available books
+// @pagination
+func GetBooks(rw http.ResponseWriter, r *http.Request) {
+	// ...doing things...
+	rw.WriteHeader(200)
+	rw.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(rw).Encode([]Book{})
+}
+
 // Get a book
 // @route {uuid} id - The identifier of the book
 // @query {bool} with_metadata - If set to `true`, includes metadatas in the response
@@ -106,6 +120,7 @@ func CreateBooksDEPRECATED(rw http.ResponseWriter, r *http.Request) {
 //	/books/ca761232-ed42-11ce-bacd-00aa0057b223?with_metadata=false
 //	200: {
 //		"id": "ca761232-ed42-11ce-bacd-00aa0057b223",
+//		"added_at": "2017-06-20T05:23:13.704Z",
 //		"name": "Cyrano de bergerac",
 //		"author": "Edmond Rostand",
 //		"price": 10.3,
@@ -145,12 +160,13 @@ func DeleteBook(rw http.ResponseWriter, r *http.Request) {
 
 // Define a simple object
 type Book struct {
-	Id          string  `json:"id" ramlType:"uuid"`
-	Name        string  `json:"name"`
-	Author      string  `json:"author"`
-	Description string  `json:"description,omitempty"`
-	Price       float64 `json:"price"`
-	Stars       uint    `json:"stars"`
+	Id          string    `json:"id" ramlType:"uuid"`
+	AddedAt     time.Time `json:"added_at"`
+	Name        string    `json:"name"`
+	Author      string    `json:"author"`
+	Description string    `json:"description,omitempty"`
+	Price       float64   `json:"price"`
+	Stars       uint      `json:"stars"`
 }
 
 // Mini multiplexer

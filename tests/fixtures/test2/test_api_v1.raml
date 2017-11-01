@@ -1,0 +1,66 @@
+#%RAML 1.0
+---
+title: Test API
+description: API used for tests
+version: v1
+baseUri: http://mywebsite/{version}
+mediaType: application/json
+types:
+  MyStruct:
+    type: object
+    properties:
+      value_1: string
+      value_2: integer
+      value_3: boolean
+      value_4?: MyStruct2
+  MyStruct2:
+    type: object
+    properties:
+      value_5: datetime[]
+      value_6: map_string_any
+  map_string_any:
+    type: object
+    properties:
+      /^.*$/: any
+    additionalProperties: true
+securitySchemes:
+  auth:
+    type: x-bearer
+    description: Authenticate a user with her auth token in the header
+    describedBy:
+      headers:
+        Authorization:
+          example: Bearer _token_
+          description: The user auth token preceded by Bearer
+/myroute/{id}:
+  uriParameters:
+    id:
+      type: string
+      description: The id of my route
+  patch:
+    description: A route that use a handler fully commented
+    queryParameters:
+      working:
+        type: boolean
+        description: If set to `true`, everything works just fine
+    responses:
+      200:
+        body:
+          application/json:
+            type: MyStruct
+            examples:
+              Example1:
+                description: |-
+                  When everything works fine
+                  `/myroute/1?working=true`
+                value: |-
+                  {
+                    "value_1": "Hello world!",
+                    "value_2": 1,
+                    "value_3": true,
+                    "value_4": {
+                      "value_5": "2017-08-30T16:25:23.719Z",
+                      "value_6": { },
+                    }
+                  }
+                strict: false
