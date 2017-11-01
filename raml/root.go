@@ -110,8 +110,7 @@ type Root struct {
 	SecuritySchemes map[string]SecurityScheme `yaml:"securitySchemes,omitempty"`
 
 	// The security schemes that apply to every resource and method in the API.
-	// TODO
-	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
+	SecuredBy []string `yaml:"securedBy,flow,omitempty"`
 
 	// Imported external libraries for use within the API.
 	// TODO

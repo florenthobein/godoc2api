@@ -47,7 +47,7 @@ func myHander(rw http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(rw, "Hello world!")
 }
 ```
-Simply add comments to you handler like this
+Simply add comments to your handler like this
 ```golang
 // An endpoint that just says hi
 // @resource GET /myroute

@@ -22,7 +22,7 @@ type Response struct {
 	// An API's methods may support custom header values in responses
 	// Detailed information about any response headers returned by this method
 	// TODO
-	//////// Headers map[HTTPHeader]Header `yaml:"headers,omitempty"`
+	//////// Headers map[string]Header `yaml:"headers,omitempty"`
 
 	// The body of the response
 	Body Body `yaml:"body"`

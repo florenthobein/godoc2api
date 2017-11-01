@@ -47,16 +47,14 @@ type Resource struct {
 
 	// A list of traits to apply to all methods declared (implicitly or explicitly) for this resource.
 	// Individual methods can override this declaration.
-	// TODO
-	//////// Is []interface{} `yaml:"is,omitempty"`
+	Is []string `yaml:"is,flow,omitempty"`
 
 	// The resource type that this resource inherits.
 	// TODO
 	//////// Type interface{} `yaml:"type,omitempty"`
 
 	// The security schemes that apply to all methods declared (implicitly or explicitly) for this resource.
-	// TODO
-	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
+	SecuredBy []string `yaml:"securedBy,flow,omitempty"`
 
 	// A resource defined as a child node of another resource is called a nested resource.
 	// The key of the child node is the URI of the nested resource relative to the

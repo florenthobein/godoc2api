@@ -2,8 +2,11 @@
 
 // todo
 // Fix: combinable enums is not RAML 1.0 compliant
+// Features: Annotations
+// Features: Traits
 // Improvement: Handle array type definitions like: (string | Person)[] (https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/#type-expressions)
 // Improvement: Create files for types to include
+// Tests/examples: SecuritySchemes
 
 package godoc2api
 
@@ -43,7 +46,6 @@ type Documentation struct {
 	routes            map[string]Route
 	types             map[string]Type
 	traits            map[string]Trait
-	securities        map[string]Security
 	annotations       map[string]Annotation
 }
 
@@ -312,15 +314,10 @@ func (d *Documentation) toRAML() (raml.Root, error) {
 		}
 	}
 
-	// Create the security schemes
-	if d.securities != nil {
+	// Create the security schemes globaly defined
+	if hasReservedSecurity() {
 		api.SecuritySchemes = make(map[string]raml.SecurityScheme)
-		for _, s := range d.securities {
-			err := s.fillToRAML(&api.SecuritySchemes)
-			if err != nil {
-				return api, fmt.Errorf("error while RAMLing security %s: %v", s, err)
-			}
-		}
+		securitiesToRAML(&api.SecuritySchemes)
 	}
 
 	return api, nil

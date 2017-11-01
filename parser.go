@@ -191,7 +191,12 @@ func parseParameter(arr []string, is_body bool) (p Parameter, register_types []T
 			// If enum values are combinable
 			// we display examples
 			enum = values
-			examples = []string{values[0], values[1], values[0] + "," + values[1]}
+			// TODO examples out of the enum are not supported in RAML...
+			// examples = []string{values[0], values[1], values[0] + "," + values[1]}
+			// TODO ugly fix!
+			tmp := strings.Split(p.Description, ".")
+			tmp = append(tmp, " Can be combined using a coma.")
+			p.Description = strings.Join(tmp, ".")
 		}
 	}
 
@@ -348,15 +353,18 @@ func parseExample(att []string) (e Example, err error) {
 	return
 }
 
-func parseTrait(arr interface{}) (t Trait, register_types string, err error) {
+func parseTrait(tag string, value interface{}) (t Trait, err error) {
 	// todo
 	return
 }
-func parseSecurity(arr interface{}) (s Security, register_types string, err error) {
-	// todo
+func parseSecurity(tag string) (s Security, err error) {
+	if !isReservedSecurity(tag) {
+		return Security{}, fmt.Errorf("security `%s` not defined", tag)
+	}
+	s = index_securities[tag]
 	return
 }
-func parseAnnotation(arr interface{}) (a Annotation, register_types string, err error) {
+func parseAnnotation(tag string, value interface{}) (a Annotation, err error) {
 	// todo
 	return
 }

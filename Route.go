@@ -36,6 +36,15 @@ func (r *Route) signature() string {
 func (r *Route) addTag(tag string, value interface{}) (err error) {
 	kind := reflect.TypeOf(value).Kind()
 
+	var checkBool = func() (bool, error) {
+		v := false
+		if kind == reflect.Bool {
+			v = value.(bool)
+		} else {
+			return false, fmt.Errorf("wrong kind for the tag %s: bool expected", tag)
+		}
+		return v, nil
+	}
 	var checkString = func() (string, error) {
 		v := ""
 		if kind == reflect.String {
@@ -218,22 +227,35 @@ func (r *Route) addTag(tag string, value interface{}) (err error) {
 		r.Examples[name] = e
 		break
 	default:
-		if kw_type, ok := isReservedTag(tag); ok {
-			switch kw_type {
+		if tag_type, ok := isReservedTag(tag); ok {
+			switch tag_type {
 			case _TAG_TYPE_ANNOTATION:
 				// todo
-				parseAnnotation(value)
+				parseAnnotation(tag, value)
 				break
 			case _TAG_TYPE_TRAIT:
 				// todo
-				parseTrait(value)
+				parseTrait(tag, value)
 				break
 			case _TAG_TYPE_SECURITY:
-				// todo
-				parseSecurity(value)
+				v, err := checkBool()
+				if err != nil {
+					return err
+				}
+				if !v {
+					break
+				}
+				s, err := parseSecurity(tag)
+				if err != nil {
+					return err
+				}
+				if r.Securities == nil {
+					r.Securities = map[string]Security{}
+				}
+				r.Securities[tag] = s
 				break
 			default:
-				err = fmt.Errorf("unkown tag type %d for %s", kw_type, tag)
+				err = fmt.Errorf("unkown tag type %d for %s", tag_type, tag)
 			}
 		} else {
 			err = fmt.Errorf("unkown tag %s", tag)
@@ -371,6 +393,22 @@ func (r *Route) _methodToRAML() (*raml.Method, error) {
 		Name:            r.Name,
 		Description:     r.Description,
 		QueryParameters: queryParameters,
+	}
+
+	// Security Schemes
+	if r.Securities != nil {
+		m.SecuredBy = []string{}
+		for security, _ := range r.Securities {
+			m.SecuredBy = append(m.SecuredBy, security)
+		}
+	}
+
+	// Traits
+	if r.Traits != nil {
+		m.Is = []string{}
+		for trait, _ := range r.Traits {
+			m.Is = append(m.Is, trait)
+		}
 	}
 
 	// Bodies

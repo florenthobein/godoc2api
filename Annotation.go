@@ -1,10 +1,6 @@
 package godoc2api
 
-import (
-	"reflect"
-
-	"github.com/florenthobein/godoc2api/raml"
-)
+import "github.com/florenthobein/godoc2api/raml"
 
 // Annotation type, mirror of the RAML equivalent
 type Annotation struct{}
@@ -12,7 +8,7 @@ type Annotation struct{}
 // Configure a new annotation type.
 // All the routes that declare the tag `tag_name` will receive
 // this annotation.
-func DefineAnnotation(tag_name string, kind reflect.Kind) {
+func DefineAnnotation(tag_name string, kind interface{}) {
 	// Store the keyword
 	reserveTag(tag_name, _TAG_TYPE_ANNOTATION)
 

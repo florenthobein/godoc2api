@@ -36,7 +36,7 @@ type Method struct {
 
 	// Detailed information about any request headers needed by this method.
 	// TODO
-	//////// Headers map[HTTPHeader]Header `yaml:"headers,omitempty"`
+	//////// Headers map[string]Header `yaml:"headers,omitempty"`
 
 	// The query string needed by this method.
 	// Mutually exclusive with queryParameters.
@@ -58,10 +58,8 @@ type Method struct {
 	//////// Protocols []string `yaml:"protocols,omitempty"`
 
 	// A list of the traits to apply to this method.
-	// TODO
-	//////// Is []interface{} `yaml:"is,omitempty"`
+	Is []string `yaml:"is,flow,omitempty"`
 
 	// The security schemes that apply to this method.
-	// TODO
-	//////// SecuredBy []interface{} `yaml:"securedBy,omitempty"`
+	SecuredBy []string `yaml:"securedBy,flow,omitempty"`
 }

@@ -191,4 +191,3 @@ type FileType struct {
 
 // Useful types
 type HTTPCode uint
-type HTTPHeader string

@@ -45,19 +45,55 @@ const _RESERVED_TAGS = `(` +
 var index_tag map[string]uint
 
 // Reserve a tag
-func reserveTag(s string, kw_type uint) {
+func reserveTag(s string, tag_type uint) {
 	if index_tag == nil {
 		index_tag = make(map[string]uint)
 	}
-	index_tag[s] = kw_type
+	index_tag[s] = tag_type
 }
 
 // Verify if a tag is reserved
-func isReservedTag(s string) (kw_type uint, ok bool) {
+func isReservedTag(s string) (tag_type uint, ok bool) {
 	if index_tag != nil {
-		kw_type, ok = index_tag[s]
+		tag_type, ok = index_tag[s]
 	}
-	return kw_type, ok || regexp.
+	return tag_type, ok || regexp.
 		MustCompile(`^`+_RESERVED_TAGS+`$`).
 		MatchString(s)
+}
+func isReservedTrait(s string) bool {
+	tag_type, ok := isReservedTag(s)
+	return ok && tag_type == _TAG_TYPE_TRAIT
+}
+func isReservedSecurity(s string) bool {
+	tag_type, ok := isReservedTag(s)
+	return ok && tag_type == _TAG_TYPE_SECURITY
+}
+func isReservedAnnotation(s string) bool {
+	tag_type, ok := isReservedTag(s)
+	return ok && tag_type == _TAG_TYPE_ANNOTATION
+}
+
+// Verify if a tag type is reserved
+func hasReservedTagType(tag_type uint) (ok bool) {
+	if index_tag == nil {
+		return
+	}
+	for _, typ := range index_tag {
+		if typ == tag_type {
+			ok = true
+			break
+		}
+	}
+	return
+}
+
+func hasReservedTrait() bool {
+	return hasReservedTagType(_TAG_TYPE_TRAIT)
+}
+func hasReservedSecurity() bool {
+	return hasReservedTagType(_TAG_TYPE_SECURITY)
+}
+func hasReservedAnnotation() bool {
+	return hasReservedTagType(_TAG_TYPE_ANNOTATION)
 }
